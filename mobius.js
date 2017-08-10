@@ -41,7 +41,7 @@ global.usetsagentport       = conf.tsagentport;
 global.usemqttbroker        = conf.mqttbroker; // mqttbroker for mobius
 global.usemqttport          = conf.mqttport;
 
-global.usesecure            = 'disable';
+global.usesecure            = conf.usesecure;
 if(usesecure === 'enable') {
     global.usemqttport      = '8883';
 }
