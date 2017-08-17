@@ -87,15 +87,6 @@ exports.build_acp = function(request, response, resource_Obj, body_Obj, callback
         responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
         callback('0', resource_Obj);
         return '0';
-    } else {
-        if(!body_Obj[rootnm].pv.acr) {
-            body_Obj = {};
-
-            body_Obj['dbg'] = 'pv.acr as M Tag should be included';
-            responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-            callback('0', resource_Obj);
-            return '0';
-        }
     }
 
     if(!body_Obj[rootnm].pvs) {
@@ -105,15 +96,6 @@ exports.build_acp = function(request, response, resource_Obj, body_Obj, callback
         responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
         callback('0', resource_Obj);
         return '0';
-    } else {
-        if(!body_Obj[rootnm].pvs.acr) {
-            body_Obj = {};
-
-            body_Obj['dbg'] = 'pvs.acr as M Tag should be included';
-            responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-            callback('0', resource_Obj);
-            return '0';
-        }
     }
 
     // body
