@@ -107,7 +107,7 @@ exports.coap_watchdog = function () {
                     port: usepxycoapport,
                     pathname: '/'+usecsebase,
                     method: 'get',
-                    confirmable: 'true',
+                    confirmable: 'false',
                     options: {
                         'Accept': 'application/json'
                     }

@@ -293,7 +293,7 @@ global.make_json_arraytype = function (body_Obj) {
         if (body_Obj.hasOwnProperty(prop)) {
             for (var attr in body_Obj[prop]) {
                 if (body_Obj[prop].hasOwnProperty(attr)) {
-                    if (attr == 'aa' || attr == 'at' || attr == 'poa' || attr == 'lbl' || attr == 'acpi' || attr == 'srt' || attr == 'nu' || attr == 'mid' || attr == 'macp') {
+                    if (attr == 'aa' || attr == 'at' || attr == 'poa' || attr == 'lbl' || attr == 'acpi' || attr == 'srt' || attr == 'nu' || attr == 'mid' || attr == 'macp' || attr == 'rels') {
                         if (body_Obj[prop][attr]) {
                             body_Obj[prop][attr] = body_Obj[prop][attr].split(' ');
                         }
@@ -774,6 +774,16 @@ function check_http(request, response, callback) {
                             else {
                                 body_Obj = {};
                                 body_Obj['dbg'] = 'cas should have can and sus key in json format';
+                                responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
+                                callback('0', body_Obj, request, response);
+                                return '0';
+                            }
+                        }
+
+                        if (body_Obj[prop].rels) {
+                            if (!Array.isArray(body_Obj[prop].rels)) {
+                                body_Obj = {};
+                                body_Obj['dbg'] = 'rels should be json array format';
                                 responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
                                 callback('0', body_Obj, request, response);
                                 return '0';
@@ -1438,6 +1448,19 @@ var onem2mParser = bodyParser.text(
     }
 );
 //var onem2mParser = bodyParser.text({ limit: '1mb', type: '*/*' });
+
+
+//////// contribution code
+// Kevin Lee, Executive Director, Unibest INC, Owner of Howchip.com
+// Process for CORS problem
+app.use(function (req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, X-M2M-RI, X-M2M-RSC, Accept, X-M2M-Origin, Locale');
+    res.header('Access-Control-Expose-Headers', 'Origin, X-Requested-With, Content-Type, X-M2M-RI, X-M2M-RSC, Accept, X-M2M-Origin, Locale');
+    (req.method === 'OPTIONS') ? res.sendStatus(200) : next();
+});
+
 
 // remoteCSE, ae, cnt
 app.post(onem2mParser, function (request, response) {
