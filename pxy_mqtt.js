@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015, OCEAN
+ * Copyright (c) 2017, KETI
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -10,7 +10,7 @@
 
 /**
  * @file
- * @copyright KETI Korea 2015, OCEAN
+ * @copyright KETI Korea 2017, OCEAN
  * @author Il Yeup Ahn [iyahn@keti.re.kr]
  */
 
@@ -87,12 +87,17 @@ exports.mqtt_watchdog = function() {
         }
     }
     else if(mqtt_state === 'connect') {
-        http_retrieve_CSEBase(function(status, res_body) {
-            if (status == '2000') {
+        http_retrieve_CSEBase(function(rsc, res_body) {
+            if (rsc == '2000') {
                 var jsonObj = JSON.parse(res_body);
-                usecseid = jsonObj['m2m:cb'].csi;
+                if(jsonObj.hasOwnProperty('m2m:cb')) {
+                    usecseid = jsonObj['m2m:cb'].csi;
 
-                mqtt_state = 'connecting';
+                    mqtt_state = 'connecting';
+                }
+                else {
+                    console.log('CSEBase tag is none');
+                }
             }
             else {
                 console.log('Target CSE(' + usemqttcbhost + ') is not ready');
@@ -126,7 +131,7 @@ exports.mqtt_watchdog = function() {
             pxymqtt_client.on('connect', function () {
                 req_sub(pxymqtt_client);
                 reg_req_sub(pxymqtt_client);
-                //resp_sub(pxymqtt_client);
+                resp_sub(pxymqtt_client);
                 mqtt_state = 'ready';
                 
                 require('./mobius/ts_agent');
@@ -421,16 +426,26 @@ function mqtt_message_action(mqtt_client, topic_arr, bodytype, jsonObj) {
     if (jsonObj['m2m:rqp'] != null) {
         var op = (jsonObj['m2m:rqp'].op == null) ? '' : jsonObj['m2m:rqp'].op;
         var to = (jsonObj['m2m:rqp'].to == null) ? '' : jsonObj['m2m:rqp'].to;
-        var to_arr = to.split('/');
-        to = '';
-        if(to_arr[0] == '') { // SP Relative
+        if(to.split(usespid + '/' + usecseid + '/' + usecsebase)[0] == '') { // Absolute
+            var to_arr = to.split(usespid + '/' + usecseid + '/' + usecsebase);
+            to='/'+usecsebase;
             for(var i = 1; i < to_arr.length; i++) {
                 to += '/';
                 to += to_arr[i];
             }
         }
-        else { // CSE Relative
-            for(i = 0; i < to_arr.length; i++) {
+        else if(to.split(usecseid + '/' + usecsebase)[0] == '') { // SP Relative
+            var to_arr = to.split(usespid + '/' + usecseid + '/' + usecsebase);
+            to='/'+usecsebase;
+            for(i = 1; i < to_arr.length; i++) {
+                to += '/';
+                to += to_arr[i];
+            }
+        }
+        else if(to.split(usecsebase)[0] == '') { // CSE Relative
+            var to_arr = to.split(usespid + '/' + usecseid + '/' + usecsebase);
+            to='/'+usecsebase;
+            for(i = 1; i < to_arr.length; i++) {
                 to += '/';
                 to += to_arr[i];
             }
@@ -442,6 +457,23 @@ function mqtt_message_action(mqtt_client, topic_arr, bodytype, jsonObj) {
         var rqi = (jsonObj['m2m:rqp'].rqi == null) ? '' : jsonObj['m2m:rqp'].rqi;
         var ty = (jsonObj['m2m:rqp'].ty == null) ? '' : jsonObj['m2m:rqp'].ty.toString();
         var pc = (jsonObj['m2m:rqp'].pc == null) ? '' : jsonObj['m2m:rqp'].pc;
+
+        if(jsonObj['m2m:rqp'].fc) {
+            var query_count = 0;
+            for(var fc_idx in jsonObj['m2m:rqp'].fc) {
+                if(jsonObj['m2m:rqp'].fc.hasOwnProperty(fc_idx)) {
+                    if(query_count == 0) {
+                        to += '?';
+                    }
+                    else {
+                        to += '&';
+                    }
+                    to += fc_idx;
+                    to += '=';
+                    to += jsonObj['m2m:rqp'].fc[fc_idx].toString();
+                }
+            }
+        }
 
         try {
             var resp_topic = '/oneM2M/resp/';
@@ -510,20 +542,21 @@ function mqtt_binding(op, to, fr, rqi, ty, pc, bodytype, callback) {
 
     var bodyStr = '';
 
-    if(usesecure == 'disable') {
-        var options = {
-            hostname: usemqttcbhost,
-            port: usecsebaseport,
-            path: to,
-            method: op,
-            headers: {
-                'X-M2M-RI': rqi,
-                'Accept': 'application/json',
-                'X-M2M-Origin': fr,
-                'Content-Type': content_type
-            }
-        };
+    var options = {
+        hostname: usemqttcbhost,
+        port: usecsebaseport,
+        path: to,
+        method: op,
+        headers: {
+            'X-M2M-RI': rqi,
+            'Accept': 'application/json',
+            'X-M2M-Origin': fr,
+            'Content-Type': content_type,
+            'binding': 'M'
+        }
+    };
 
+    if(usesecure == 'disable') {
         var req = http.request(options, function (res) {
             res.setEncoding('utf8');
 
@@ -537,19 +570,7 @@ function mqtt_binding(op, to, fr, rqi, ty, pc, bodytype, callback) {
         });
     }
     else {
-        options = {
-            hostname: usemqttcbhost,
-            port: usecsebaseport,
-            path: to,
-            method: op,
-            headers: {
-                'X-M2M-RI': rqi,
-                'Accept': 'application/json',
-                'X-M2M-Origin': fr,
-                'Content-Type': content_type
-            },
-            ca: fs.readFileSync('ca-crt.pem')
-        };
+        options.ca = fs.readFileSync('ca-crt.pem');
 
         req = https.request(options, function (res) {
             res.setEncoding('utf8');
@@ -635,6 +656,48 @@ var onem2mParser = bodyParser.text(
         type: 'application/onem2m-resource+xml;application/xml;application/json;application/vnd.onem2m-res+xml;application/vnd.onem2m-res+json'
     }
 );
+
+mqtt_app.post('/notification', onem2mParser, function(request, response, next) {
+    var fullBody = '';
+    request.on('data', function(chunk) {
+        fullBody += chunk.toString();
+    });
+    request.on('end', function() {
+        request.body = fullBody;
+
+        try {
+            var aeid = url.parse(request.headers.nu).pathname.replace('/', '').split('?')[0];
+            console.log('[pxy_mqtt] - ' + aeid);
+
+            if (aeid == '') {
+                console.log('aeid of notification url is none');
+                return;
+            }
+
+            if (mqtt_state == 'ready') {
+                var noti_topic = util.format('/oneM2M/req/%s/%s/%s', usecseid.replace('/', ''), aeid, request.headers.bodytype);
+
+                var rqi = request.headers['x-m2m-ri'];
+                resp_mqtt_rqi_arr.push(rqi);
+                http_response_q[rqi] = response;
+
+                pxymqtt_client.publish(noti_topic, request.body);
+                console.log('<---- ' + noti_topic);
+            }
+            else {
+                console.log('pxymqtt is not ready');
+            }
+        }
+        catch (e) {
+            console.log(e.message);
+            var rsp_Obj = {};
+            rsp_Obj['rsp'] = {};
+            rsp_Obj['rsp'].dbg = 'notificationUrl does not support : ' + request.headers.nu;
+            response.setHeader('X-M2M-RSC', '4000');
+            response.status(400).end(JSON.stringify(rsp_Obj));
+        }
+    });
+});
 
 mqtt_app.post('/register_csr', onem2mParser, function(request, response, next) {
     var fullBody = '';
@@ -754,19 +817,19 @@ function http_retrieve_CSEBase(callback) {
     var resourceid = '/' + usecsebase;
     var responseBody = '';
 
-    if(usesecure == 'disable') {
-        var options = {
-            hostname: usemqttcbhost,
-            port: usecsebaseport,
-            path: resourceid,
-            method: 'get',
-            headers: {
-                'X-M2M-RI': rqi,
-                'Accept': 'application/json',
-                'X-M2M-Origin': usecseid
-            }
-        };
+    var options = {
+        hostname: usemqttcbhost,
+        port: usecsebaseport,
+        path: resourceid,
+        method: 'get',
+        headers: {
+            'X-M2M-RI': rqi,
+            'Accept': 'application/json',
+            'X-M2M-Origin': usecseid
+        }
+    };
 
+    if(usesecure == 'disable') {
         var req = http.request(options, function (res) {
             res.setEncoding('utf8');
             res.on('data', function (chunk) {
@@ -779,18 +842,7 @@ function http_retrieve_CSEBase(callback) {
         });
     }
     else {
-        options = {
-            hostname: usemqttcbhost,
-            port: usecsebaseport,
-            path: resourceid,
-            method: 'get',
-            headers: {
-                'X-M2M-RI': rqi,
-                'Accept': 'application/json',
-                'X-M2M-Origin': usecseid
-            },
-            ca: fs.readFileSync('ca-crt.pem')
-        };
+        options.ca = fs.readFileSync('ca-crt.pem');
 
         req = https.request(options, function (res) {
             res.setEncoding('utf8');

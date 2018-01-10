@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015, OCEAN
+ * Copyright (c) 2017, KETI
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -9,7 +9,9 @@
  */
 
 /**
- * Created by Il Yeup, Ahn in KETI on 2016-07-28.
+ * @file
+ * @copyright KETI Korea 2017, OCEAN
+ * @author Il Yeup Ahn [iyahn@keti.re.kr]
  */
 
 var fs = require('fs');
@@ -41,6 +43,7 @@ global.usetsagentport       = conf.tsagentport;
 global.usemqttbroker        = conf.mqttbroker; // mqttbroker for mobius
 global.usemqttport          = conf.mqttport;
 
+global.usesemanticbroker    = conf.semanticbroker;
 global.usesecure            = conf.usesecure;
 if(usesecure === 'enable') {
     global.usemqttport      = '8883';
@@ -48,6 +51,8 @@ if(usesecure === 'enable') {
 else {
     global.usemqttport          = conf.mqttport;
 }
+
+global.useaccesscontrolpolicy = conf.accesscontrolpolicy;
 
 global.logDir        		= conf.logDir;
 

@@ -12,7 +12,9 @@
     "pxywsport": 7577,
     "tsagentport": 7582,
     "mqttbroker": "localhost",
+    "semanticbroker": "10.10.202.114",
     "mqttport": 1883,
     "usesecure": "disable",
+    "accesscontrolpolicy": "disable",
     "logDir": "./log"
 }

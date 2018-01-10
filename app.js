@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015, OCEAN
+ * Copyright (c) 2017, KETI
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -10,7 +10,7 @@
 
 /**
  * @file Main code of Mobius Yellow. Role of flow router
- * @copyright KETI Korea 2015, OCEAN
+ * @copyright KETI Korea 2017, OCEAN
  * @author Il Yeup Ahn [iyahn@keti.re.kr]
  */
 
@@ -49,7 +49,14 @@ var db_sql = require('./mobius/sql_action');
 // ������ �����մϴ�.
 var app = express();
 
-global.M2M_SP_ID = '//mobius.keti.re.kr';
+global.usespid              = '//keti.re.kr';
+global.usesuperuser         = 'Superman';
+
+global.useobserver          = 'Sandwich';
+
+global.resultStatusCode = {
+    '4103': "ACCESS DENIED"
+};
 
 global.randomValueBase64 = function (len) {
     return crypto.randomBytes(Math.ceil(len * 3 / 4))
@@ -83,7 +90,6 @@ var accessLogStream = fileStreamRotator.getStream({
 // setup the logger
 app.use(morgan('combined', {stream: accessLogStream}));
 //ts_app.use(morgan('short', {stream: accessLogStream}));
-
 
 function del_req_resource() {
     db_sql.delete_req(function (err, delete_Obj) {
@@ -221,7 +227,6 @@ else {
         }
     });
 }
-
 
 global.get_ri_list_sri = function (request, response, sri_list, ri_list, count, callback) {
     if(sri_list.length <= count) {
@@ -474,29 +479,32 @@ function check_http(request, response, callback) {
     }
 
     // Check X-M2M-Origin Header
-    if ((request.headers['x-m2m-origin'] == null || request.headers['x-m2m-origin'] == '')) {
-        // responder.error_result(request, response, 400, 4000, 'X-M2M-Origin Header is null');
-        // callback('0', body_Obj, request, response);
-        // return '0';
+    if ((request.headers['x-m2m-origin'] == null)) {
+        responder.error_result(request, response, 400, 4000, 'BAD REQUEST: X-M2M-Origin Header is Mandatory');
+        callback('0', body_Obj, request, response);
+        return '0';
+    }
 
+    if (request.headers['x-m2m-origin'] == '') {
         request.headers['x-m2m-origin'] = 'S';
     }
 
-    /*if (request.headers['x-m2m-origin'].substr(0, 1) != '/' && request.headers['x-m2m-origin'].substr(0, 1) != 'S' && request.headers['x-m2m-origin'].substr(0, 1) != 'C') {
-     body_Obj = {};
-     body_Obj['dbg'] = 'AE-ID should start capital S or C or / in X-M2M-Origin Header';
-     responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-     callback('0', body_Obj, request, response);
-     return '0';
-     }*/ // ignore value of Origin tag
-
-    /*if (request.method != 'POST' && (request.headers['x-m2m-origin'] == 'S' || request.headers['x-m2m-origin'] == 'C' || request.headers['x-m2m-origin'] == '/')) {
-     body_Obj = {};
-     body_Obj['dbg'] = 'When GET, PUT, DELETE request, AE-ID should be full AE-ID in X-M2M-Origin Header';
-     responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-     callback('0', body_Obj, request, response);
-     return '0';
-     }*/
+    // if(request.headers['x-m2m-origin'].charAt(0) == '/' || request.headers['x-m2m-origin'].charAt(0) == 'S' || request.headers['x-m2m-origin'].charAt(0) == 'C') {
+    //     if (request.method != 'POST' && (request.headers['x-m2m-origin'] == 'S' || request.headers['x-m2m-origin'] == 'C' || request.headers['x-m2m-origin'] == '/')) {
+    //         body_Obj = {};
+    //         body_Obj['dbg'] = 'BAD REQUEST: When GET, PUT, DELETE request, AE-ID should be full AE-ID in X-M2M-Origin Header';
+    //         responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
+    //         callback('0', body_Obj, request, response);
+    //         return '0';
+    //     }
+    // }
+    // else {
+    //     console.log(request.headers['x-m2m-origin']);
+    //     body_Obj = {};
+    //     responder.error_result(request, response, 405, 4005, 'OPERATION_NOT_ALLOWED: X-M2M-Origin Header value has a start character \'/\' , \'S\' or \'C\'');
+    //     callback('0', body_Obj, request, response);
+    //     return '0';
+    // }
 
     var url_arr = url.parse(request.url).pathname.split('/');
     var last_url = url_arr[url_arr.length - 1];
@@ -524,8 +532,29 @@ function check_http(request, response, callback) {
                         return '0';
                     }
 
+                    if(ty == '2' && request.headers['x-m2m-origin'].charAt(0) == '/') {
+                        console.log(request.headers['x-m2m-origin']);
+                        body_Obj = {};
+                        body_Obj['dbg'] = 'BAD REQUEST: When request to create AE, AE-ID should start \'S\' or \'C\' of AE-ID in X-M2M-Origin Header';
+                        responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
+                        callback('0', body_Obj, request, response);
+                        return '0';
+                    }
+
+                    if (ty == '5') {
+                        responder.error_result(request, response, 405, 4005, 'OPERATION_NOT_ALLOWED: CSEBase can not be created by others');
+                        callback('0', body_Obj, request, response);
+                        return '0';
+                    }
+
                     if (ty == '17') {
                         responder.error_result(request, response, 405, 4005, 'OPERATION_NOT_ALLOWED (req is not supported when post request)');
+                        callback('0', body_Obj, request, response);
+                        return '0';
+                    }
+
+                    if(responder.typeRsrc[ty] == null) {
+                        responder.error_result(request, response, 405, 4005, 'OPERATION_NOT_ALLOWED: we do not support ' + Object.keys(body_Obj)[0] + '(' + ty + ') resource');
                         callback('0', body_Obj, request, response);
                         return '0';
                     }
@@ -555,12 +584,12 @@ function check_http(request, response, callback) {
                         }
                     }
                 }
-                else {
+                else { // PUT
                     ty = '99';
                     for (var ty_idx in responder.typeRsrc) {
                         if (responder.typeRsrc.hasOwnProperty(ty_idx)) {
                             if ((ty_idx == 4) && (responder.typeRsrc[ty_idx] == Object.keys(body_Obj)[0])) {
-                                responder.error_result(request, response, 400, 4000, 'Update cin is not supported');
+                                responder.error_result(request, response, 405, 4005, 'Update cin is not supported');
                                 callback('0', body_Obj, request, response);
                                 return '0';
                             }
@@ -573,6 +602,16 @@ function check_http(request, response, callback) {
                                 else {
                                     ty = ty_idx;
                                     break;
+                                }
+                            }
+                            else if (ty_idx == 13) {
+                                for (var mgo_idx in responder.mgoType) {
+                                    if (responder.mgoType.hasOwnProperty(mgo_idx)) {
+                                        if ((responder.mgoType[mgo_idx] == Object.keys(body_Obj)[0])) {
+                                            ty = ty_idx;
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -819,166 +858,180 @@ function check_http(request, response, callback) {
 function check_resource(request, response, callback) {
     var ri = url.parse(request.url).pathname;
 
-    var url_arr = ri.split('/');
-    var last_url = url_arr[url_arr.length - 1];
-    var op = 'direct';
-
-    if (last_url == 'latest' || last_url == 'la') {
-        ri = ri.replace('/latest', '');
-        ri = ri.replace('/la', '');
-        op = 'latest';
-        db_sql.select_direct_lookup(ri, function (err, result_Obj) {
-            if (!err) {
-                if (result_Obj.length == 1) {
-                    if (result_Obj[0].ty == '3') {
-                        var cur_ty = '4';
+    var chk_fopt = ri.split('/fopt');
+    if(chk_fopt.length == 2) {
+        //if (chk_fopt[1] == '') {
+            //var url_arr = ri.split('/');
+            //var last_url = url_arr[url_arr.length - 1];
+            //var op = 'direct';
+            //if (last_url == 'fanoutpoint' || last_url == 'fopt') {
+                //ri = ri.replace('/fanoutpoint', '');
+                //ri = ri.replace('/fopt', '');
+                ri = chk_fopt[0];
+                op = 'fanoutpoint';
+                db_sql.select_grp_lookup(ri, function (err, result_Obj) {
+                    if (!err) {
+                        if (result_Obj.length == 1) {
+                            result_Obj[0].acpi = JSON.parse(result_Obj[0].acpi);
+                            result_Obj[0].lbl = JSON.parse(result_Obj[0].lbl);
+                            result_Obj[0].aa = JSON.parse(result_Obj[0].aa);
+                            result_Obj[0].at = JSON.parse(result_Obj[0].at);
+                            callback('1', result_Obj[0], op, request, response);
+                        }
+                        else {
+                            result_Obj = {};
+                            result_Obj['dbg'] = 'resource does not exist';
+                            responder.response_result(request, response, 404, result_Obj, 4004, request.url, result_Obj['dbg']);
+                            callback('0', {}, '', request, response);
+                            return '0';
+                        }
                     }
-                    else if (result_Obj[0].ty == '29') {
-                        cur_ty = '30';
+                    else {
+                        var code = result_Obj.message;
+                        result_Obj = {};
+                        result_Obj['dbg'] = code;
+                        responder.response_result(request, response, 500, result_Obj, 5000, request.url, result_Obj['dbg']);
+                        callback('0', {}, '', request, response);
+                        return '0';
+                    }
+                });
+            //}
+        ////}
+        ////else {
+       //     chk_fopt[0]
+     //   }
+    }
+    else {
+        var url_arr = ri.split('/');
+        var last_url = url_arr[url_arr.length - 1];
+        var op = 'direct';
+
+        if (last_url == 'latest' || last_url == 'la') {
+            ri = ri.replace('/latest', '');
+            ri = ri.replace('/la', '');
+            op = 'latest';
+            db_sql.select_direct_lookup(ri, function (err, result_Obj) {
+                if (!err) {
+                    if (result_Obj.length == 1) {
+                        if (result_Obj[0].ty == '3') {
+                            var cur_ty = '4';
+                        }
+                        else if (result_Obj[0].ty == '29') {
+                            cur_ty = '30';
+                        }
+                        else {
+                            result_Obj = {};
+                            result_Obj['dbg'] = 'this resource can not have latest resource';
+                            responder.response_result(request, response, 404, result_Obj, 4004, request.url, result_Obj['dbg']);
+                            callback('0', {}, '', request, response);
+                            return '0';
+                        }
+                        var cur_d = new Date();
+                        db_sql.select_latest_lookup(ri, cur_d, 0, cur_ty, function (err, result_Obj) {
+                            if (!err) {
+                                if (result_Obj.length == 1) {
+                                    result_Obj[0].acpi = JSON.parse(result_Obj[0].acpi);
+                                    result_Obj[0].lbl = JSON.parse(result_Obj[0].lbl);
+                                    result_Obj[0].aa = JSON.parse(result_Obj[0].aa);
+                                    result_Obj[0].at = JSON.parse(result_Obj[0].at);
+                                    callback('1', result_Obj[0], op, request, response);
+                                }
+                                else {
+                                    result_Obj = {};
+                                    result_Obj['dbg'] = 'resource does not exist';
+                                    responder.response_result(request, response, 404, result_Obj, 4004, request.url, result_Obj['dbg']);
+                                    callback('0', {}, '', request, response);
+                                    return '0';
+                                }
+                            }
+                            else {
+                                var code = result_Obj.message;
+                                result_Obj = {};
+                                result_Obj['dbg'] = code;
+                                responder.response_result(request, response, 500, result_Obj, 5000, request.url, result_Obj['dbg']);
+                                callback('0', {}, '', request, response);
+                                return '0';
+                            }
+                        });
                     }
                     else {
                         result_Obj = {};
-                        result_Obj['dbg'] = 'this resource can not have latest resource';
+                        result_Obj['dbg'] = 'resource does not exist';
                         responder.response_result(request, response, 404, result_Obj, 4004, request.url, result_Obj['dbg']);
                         callback('0', {}, '', request, response);
                         return '0';
                     }
-                    var cur_d = new Date();
-                    db_sql.select_latest_lookup(ri, cur_d, 0, cur_ty, function (err, result_Obj) {
-                        if (!err) {
-                            if (result_Obj.length == 1) {
-                                result_Obj[0].acpi = JSON.parse(result_Obj[0].acpi);
-                                result_Obj[0].lbl = JSON.parse(result_Obj[0].lbl);
-                                result_Obj[0].aa = JSON.parse(result_Obj[0].aa);
-                                result_Obj[0].at = JSON.parse(result_Obj[0].at);
-                                callback('1', result_Obj[0], op, request, response);
-                            }
-                            else {
-                                result_Obj = {};
-                                result_Obj['dbg'] = 'resource does not exist';
-                                responder.response_result(request, response, 404, result_Obj, 4004, request.url, result_Obj['dbg']);
-                                callback('0', {}, '', request, response);
-                                return '0';
-                            }
-                        }
-                        else {
-                            var code = result_Obj.message;
-                            result_Obj = {};
-                            result_Obj['dbg'] = code;
-                            responder.response_result(request, response, 500, result_Obj, 5000, request.url, result_Obj['dbg']);
-                            callback('0', {}, '', request, response);
-                            return '0';
-                        }
-                    });
                 }
                 else {
+                    var code = result_Obj.message;
                     result_Obj = {};
-                    result_Obj['dbg'] = 'resource does not exist';
-                    responder.response_result(request, response, 404, result_Obj, 4004, request.url, result_Obj['dbg']);
+                    result_Obj['dbg'] = code;
+                    responder.response_result(request, response, 500, result_Obj, 5000, request.url, result_Obj['dbg']);
                     callback('0', {}, '', request, response);
                     return '0';
                 }
-            }
-            else {
-                var code = result_Obj.message;
-                result_Obj = {};
-                result_Obj['dbg'] = code;
-                responder.response_result(request, response, 500, result_Obj, 5000, request.url, result_Obj['dbg']);
-                callback('0', {}, '', request, response);
-                return '0';
-            }
-        });
-    }
-    else if (last_url == 'oldest' || last_url == 'ol') {
-        ri = ri.replace('/oldest', '');
-        ri = ri.replace('/ol', '');
-        op = 'oldest';
-        db_sql.select_oldest_lookup(ri, function (err, result_Obj) {
-            if (!err) {
-                if (result_Obj.length == 1) {
-                    result_Obj[0].acpi = JSON.parse(result_Obj[0].acpi);
-                    result_Obj[0].lbl = JSON.parse(result_Obj[0].lbl);
-                    result_Obj[0].aa = JSON.parse(result_Obj[0].aa);
-                    result_Obj[0].at = JSON.parse(result_Obj[0].at);
-                    callback('1', result_Obj[0], op, request, response);
+            });
+        }
+        else if (last_url == 'oldest' || last_url == 'ol') {
+            ri = ri.replace('/oldest', '');
+            ri = ri.replace('/ol', '');
+            op = 'oldest';
+            db_sql.select_oldest_lookup(ri, function (err, result_Obj) {
+                if (!err) {
+                    if (result_Obj.length == 1) {
+                        result_Obj[0].acpi = JSON.parse(result_Obj[0].acpi);
+                        result_Obj[0].lbl = JSON.parse(result_Obj[0].lbl);
+                        result_Obj[0].aa = JSON.parse(result_Obj[0].aa);
+                        result_Obj[0].at = JSON.parse(result_Obj[0].at);
+                        callback('1', result_Obj[0], op, request, response);
+                    }
+                    else {
+                        result_Obj = {};
+                        result_Obj['dbg'] = 'resource does not exist';
+                        responder.response_result(request, response, 404, result_Obj, 4004, request.url, result_Obj['dbg']);
+                        callback('0', {}, '', request, response);
+                        return '0';
+                    }
                 }
                 else {
+                    var code = result_Obj.message;
                     result_Obj = {};
-                    result_Obj['dbg'] = 'resource does not exist';
-                    responder.response_result(request, response, 404, result_Obj, 4004, request.url, result_Obj['dbg']);
+                    result_Obj['dbg'] = code;
+                    responder.response_result(request, response, 500, result_Obj, 5000, request.url, result_Obj['dbg']);
                     callback('0', {}, '', request, response);
                     return '0';
                 }
-            }
-            else {
-                var code = result_Obj.message;
-                result_Obj = {};
-                result_Obj['dbg'] = code;
-                responder.response_result(request, response, 500, result_Obj, 5000, request.url, result_Obj['dbg']);
-                callback('0', {}, '', request, response);
-                return '0';
-            }
-        });
-    }
-    else if (last_url == 'fanoutpoint' || last_url == 'fopt') {
-        ri = ri.replace('/fanoutpoint', '');
-        ri = ri.replace('/fopt', '');
-        op = 'fanoutpoint';
-        db_sql.select_grp_lookup(ri, function (err, result_Obj) {
-            if (!err) {
-                if (result_Obj.length == 1) {
-                    result_Obj[0].acpi = JSON.parse(result_Obj[0].acpi);
-                    result_Obj[0].lbl = JSON.parse(result_Obj[0].lbl);
-                    result_Obj[0].aa = JSON.parse(result_Obj[0].aa);
-                    result_Obj[0].at = JSON.parse(result_Obj[0].at);
-                    callback('1', result_Obj[0], op, request, response);
+            });
+        }
+        else {
+            op = 'direct';
+            console.log('X-M2M-Origin: ' + request.headers['x-m2m-origin']);
+            db_sql.select_direct_lookup(ri, function (err, result_Obj) {
+                if (!err) {
+                    if (result_Obj.length == 1) {
+                        result_Obj[0].acpi = JSON.parse(result_Obj[0].acpi);
+                        result_Obj[0].lbl = JSON.parse(result_Obj[0].lbl);
+                        result_Obj[0].aa = JSON.parse(result_Obj[0].aa);
+                        result_Obj[0].at = JSON.parse(result_Obj[0].at);
+                        callback('1', result_Obj[0], op, request, response);
+                    }
+                    else {
+                        result_Obj = {};
+                        result_Obj['dbg'] = 'resource does not exist';
+                        responder.response_result(request, response, 404, result_Obj, 4004, request.url, result_Obj['dbg']);
+                        callback('0', {}, '', request, response);
+                        return '0';
+                    }
                 }
                 else {
                     result_Obj = {};
-                    result_Obj['dbg'] = 'resource does not exist';
-                    responder.response_result(request, response, 404, result_Obj, 4004, request.url, result_Obj['dbg']);
+                    result_Obj['dbg'] = result_Obj.message;
+                    responder.response_result(request, response, 500, result_Obj, 5000, request.url, result_Obj['dbg']);
                     callback('0', {}, '', request, response);
                     return '0';
                 }
-            }
-            else {
-                var code = result_Obj.message;
-                result_Obj = {};
-                result_Obj['dbg'] = code;
-                responder.response_result(request, response, 500, result_Obj, 5000, request.url, result_Obj['dbg']);
-                callback('0', {}, '', request, response);
-                return '0';
-            }
-        });
-    }
-    else {
-        op = 'direct';
-        console.log('X-M2M-Origin: ' + request.headers['x-m2m-origin']);
-        db_sql.select_direct_lookup(ri, function (err, result_Obj) {
-            if (!err) {
-                if (result_Obj.length == 1) {
-                    result_Obj[0].acpi = JSON.parse(result_Obj[0].acpi);
-                    result_Obj[0].lbl = JSON.parse(result_Obj[0].lbl);
-                    result_Obj[0].aa = JSON.parse(result_Obj[0].aa);
-                    result_Obj[0].at = JSON.parse(result_Obj[0].at);
-                    callback('1', result_Obj[0], op, request, response);
-                }
-                else {
-                    result_Obj = {};
-                    result_Obj['dbg'] = 'resource does not exist';
-                    responder.response_result(request, response, 404, result_Obj, 4004, request.url, result_Obj['dbg']);
-                    callback('0', {}, '', request, response);
-                    return '0';
-                }
-            }
-            else {
-                result_Obj = {};
-                result_Obj['dbg'] = result_Obj.message;
-                responder.response_result(request, response, 500, result_Obj, 5000, request.url, result_Obj['dbg']);
-                callback('0', {}, '', request, response);
-                return '0';
-            }
-        });
+            });
+        }
     }
 }
 
@@ -1082,8 +1135,8 @@ function lookup_create(request, response) {
                     security.check(request, response, parent_comm.ty, result_grp.macp, '1', result_grp.cr, function (rsc, request, response) {
                         if (rsc == '0') {
                             body_Obj = {};
-                            body_Obj['dbg'] = 'ACCESS_DENIED';
-                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, 'ACCESS_DENIED');
+                            body_Obj['dbg'] = resultStatusCode['4103'];
+                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
                             return '0';
                         }
 
@@ -1140,16 +1193,16 @@ function lookup_create(request, response) {
                     body_Obj[rootnm].acpi = [];
                 }
 
-                for (var index in parent_comm.acpi) {
-                    if (parent_comm.acpi.hasOwnProperty(index)) {
-                        body_Obj[rootnm].acpi.push(parent_comm.acpi[index]);
-                    }
-                }
+                // 20171212 remove inherit acp of parent to current resource
+                // for (var index in parent_comm.acpi) {
+                //     if (parent_comm.acpi.hasOwnProperty(index)) {
+                //         body_Obj[rootnm].acpi.push(parent_comm.acpi[index]);
+                //     }
+                // }
 
                 if (parent_comm.ty == 2 || parent_comm.ty == 4 || parent_comm.ty == 3 || parent_comm.ty == 9 || parent_comm.ty == 24 || parent_comm.ty == 23 || parent_comm.ty == 29) {
                     db_sql.select_resource(responder.typeRsrc[parent_comm.ty], parent_comm.ri, function (err, parent_spec) {
                         if (!err) {
-
                             if ((ty == 4) && (parent_comm.ty == 3)) { // contentInstance
                                 if (parent_spec[0].mni == null) {
                                     body_Obj[rootnm].mni = '3153600000';
@@ -1165,6 +1218,12 @@ function lookup_create(request, response) {
                                         body_Obj = {};
                                         body_Obj['dbg'] = 'can not create cin because mbs value is zero';
                                         responder.response_result(request, response, 406, body_Obj, 5207, request.url, body_Obj['dbg']);
+                                        return '0';
+                                    }
+                                    else if (parent_spec[0].disr == true) {
+                                        body_Obj = {};
+                                        body_Obj['dbg'] = 'OPERATION NOT ALLOWED: disr attribute is true';
+                                        responder.response_result(request, response, 405, body_Obj, 4005, request.url, body_Obj['dbg']);
                                         return '0';
                                     }
                                     else {
@@ -1187,8 +1246,8 @@ function lookup_create(request, response) {
                             security.check(request, response, parent_comm.ty, parent_comm.acpi, '1', parent_spec[0].cr, function (rsc, request, response) {
                                 if (rsc == '0') {
                                     body_Obj = {};
-                                    body_Obj['dbg'] = 'ACCESS_DENIED';
-                                    responder.response_result(request, response, 403, body_Obj, 4103, request.url, 'ACCESS_DENIED');
+                                    body_Obj['dbg'] = resultStatusCode['4103'];
+                                    responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
                                     return '0';
                                 }
                                 resource.create(request, response, ty, body_Obj, function (rsc) {
@@ -1208,8 +1267,8 @@ function lookup_create(request, response) {
                     security.check(request, response, parent_comm.ty, parent_comm.acpi, access_value, '', function (rsc, request, response) {
                         if (rsc == '0') {
                             body_Obj = {};
-                            body_Obj['dbg'] = 'ACCESS_DENIED';
-                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, 'ACCESS_DENIED');
+                            body_Obj['dbg'] = resultStatusCode['4103'];
+                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
                             return '0';
                         }
                         resource.create(request, response, ty, body_Obj, function (rsc) {
@@ -1239,20 +1298,35 @@ function lookup_retrieve(request, response) {
                         return rsc;
                     }
 
-                    security.check(request, response, results_comm.ty, result_grp.macp, '2', result_grp.cr, function (rsc, request, response) {
-                        if (rsc == '0') {
-                            body_Obj = {};
-                            body_Obj['dbg'] = 'ACCESS_DENIED';
-                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, 'ACCESS_DENIED');
-                            return '0';
-                        }
+                    if (request.query.fu == 1) {
+                        security.check(request, response, results_comm.ty, result_grp.macp, '32', result_grp.cr, function (rsc, request, response) {
+                            if (rsc == '0') {
+                                body_Obj = {};
+                                body_Obj['dbg'] = resultStatusCode['4103'];
+                                responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
+                                return '0';
+                            }
 
-                        fopt.check(request, response, result_grp, body_Obj);
-                    });
+                            fopt.check(request, response, result_grp, body_Obj);
+                        });
+                    }
+                    else {
+                        security.check(request, response, results_comm.ty, result_grp.macp, '2', result_grp.cr, function (rsc, request, response) {
+                            if (rsc == '0') {
+                                body_Obj = {};
+                                body_Obj['dbg'] = resultStatusCode['4103'];
+                                responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
+                                return '0';
+                            }
+
+                            fopt.check(request, response, result_grp, body_Obj);
+                        });
+                    }
+
                 });
             }
             else { //if(op == 'direct') {
-                if(results_comm.ty == 2 || results_comm.ty == 4 || results_comm.ty == 3 || results_comm.ty == 9 || results_comm.ty == 24 || results_comm.ty == 23 || results_comm.ty == 29) {
+                if(results_comm.ty == 2 || results_comm.ty == 4 || results_comm.ty == 3 || results_comm.ty == 9 || results_comm.ty == 16 || results_comm.ty == 24 || results_comm.ty == 23 || results_comm.ty == 29) {
                     db_sql.select_resource(responder.typeRsrc[results_comm.ty], results_comm.ri, function (err, results_spec) {
                         if (!err) {
                             if(results_spec.length == 0) {
@@ -1264,30 +1338,59 @@ function lookup_retrieve(request, response) {
                                 if(results_comm.ty == 2) {
                                     results_spec[0].cr = results_spec[0].aei;
                                 }
+                                else if (results_comm.ty == 16) {
+                                    results_spec[0].cr = results_spec[0].cb;
+                                }
                             }
 
-                            security.check(request, response, results_comm.ty, results_comm.acpi, '2', results_spec[0].cr, function (rsc, request, response) {
-                                if (rsc == '0') {
-                                    body_Obj = {};
-                                    body_Obj['dbg'] = 'ACCESS_DENIED';
-                                    responder.response_result(request, response, 403, body_Obj, 4103, request.url, 'ACCESS_DENIED');
-                                    return '0';
-                                }
-                                resource.retrieve(request, response, results_comm);
-                            });
+                            if (request.query.fu == 1) {
+                                security.check(request, response, results_comm.ty, results_comm.acpi, '32', results_spec[0].cr, function (rsc, request, response) {
+                                    if (rsc == '0') {
+                                        body_Obj = {};
+                                        body_Obj['dbg'] = resultStatusCode['4103'];
+                                        responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
+                                        return '0';
+                                    }
+                                    resource.retrieve(request, response, results_comm);
+                                });
+                            }
+                            else {
+                                security.check(request, response, results_comm.ty, results_comm.acpi, '2', results_spec[0].cr, function (rsc, request, response) {
+                                    if (rsc == '0') {
+                                        body_Obj = {};
+                                        body_Obj['dbg'] = resultStatusCode['4103'];
+                                        responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
+                                        return '0';
+                                    }
+                                    resource.retrieve(request, response, results_comm);
+                                });
+                            }
                         }
                     });
                 }
                 else {
-                    security.check(request, response, results_comm.ty, results_comm.acpi, '2', '', function (rsc, request, response) {
-                        if (rsc == '0') {
-                            body_Obj = {};
-                            body_Obj['dbg'] = 'ACCESS_DENIED';
-                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, 'ACCESS_DENIED');
-                            return '0';
-                        }
-                        resource.retrieve(request, response, results_comm);
-                    });
+                    if (request.query.fu == 1) {
+                        security.check(request, response, results_comm.ty, results_comm.acpi, '32', '', function (rsc, request, response) {
+                            if (rsc == '0') {
+                                body_Obj = {};
+                                body_Obj['dbg'] = resultStatusCode['4103'];
+                                responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
+                                return '0';
+                            }
+                            resource.retrieve(request, response, results_comm);
+                        });
+                    }
+                    else {
+                        security.check(request, response, results_comm.ty, results_comm.acpi, '2', '', function (rsc, request, response) {
+                            if (rsc == '0') {
+                                body_Obj = {};
+                                body_Obj['dbg'] = resultStatusCode['4103'];
+                                responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
+                                return '0';
+                            }
+                            resource.retrieve(request, response, results_comm);
+                        });
+                    }
                 }
             }
         });
@@ -1314,8 +1417,8 @@ function lookup_update(request, response) {
                     security.check(request, response, results_comm.ty, result_grp.macp, '4', result_grp.cr, function (rsc, request, response) {
                         if (rsc == '0') {
                             body_Obj = {};
-                            body_Obj['dbg'] = 'ACCESS_DENIED';
-                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, 'ACCESS_DENIED');
+                            body_Obj['dbg'] = resultStatusCode['4103'];
+                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
                             return '0';
                         }
 
@@ -1324,7 +1427,7 @@ function lookup_update(request, response) {
                 });
             }
             else { //if(op == 'direct') {
-                if(results_comm.ty == 2 || results_comm.ty == 4 || results_comm.ty == 3 || results_comm.ty == 9 || results_comm.ty == 24 || results_comm.ty == 23 || results_comm.ty == 29) {
+                if(results_comm.ty == 2 || results_comm.ty == 4 || results_comm.ty == 3 || results_comm.ty == 9 || results_comm.ty == 16 || results_comm.ty == 24 || results_comm.ty == 23 || results_comm.ty == 29) {
                     db_sql.select_resource(responder.typeRsrc[results_comm.ty], results_comm.ri, function (err, results_spec) {
                         if (!err) {
                             if(results_spec.length == 0) {
@@ -1336,12 +1439,15 @@ function lookup_update(request, response) {
                                 if(results_comm.ty == 2) {
                                     results_spec[0].cr = results_spec[0].aei;
                                 }
+                                else if (results_comm.ty == 16) {
+                                    results_spec[0].cr = results_spec[0].cb;
+                                }
                             }
                             security.check(request, response, results_comm.ty, results_comm.acpi, '4', results_spec[0].cr, function (rsc, request, response) {
                                 if (rsc == '0') {
                                     body_Obj = {};
-                                    body_Obj['dbg'] = 'ACCESS_DENIED';
-                                    responder.response_result(request, response, 403, body_Obj, 4103, request.url, 'ACCESS_DENIED');
+                                    body_Obj['dbg'] = resultStatusCode['4103'];
+                                    responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
                                     return '0';
                                 }
                                 resource.update(request, response, results_comm, body_Obj);
@@ -1353,8 +1459,8 @@ function lookup_update(request, response) {
                     security.check(request, response, results_comm.ty, results_comm.acpi, '4', '', function (rsc, request, response) {
                         if (rsc == '0') {
                             body_Obj = {};
-                            body_Obj['dbg'] = 'ACCESS_DENIED';
-                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, 'ACCESS_DENIED');
+                            body_Obj['dbg'] = resultStatusCode['4103'];
+                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
                             return '0';
                         }
                         resource.update(request, response, results_comm, body_Obj);
@@ -1385,8 +1491,8 @@ function lookup_delete(request, response) {
                     security.check(request, response, results_comm.ty, result_grp.macp, '8', result_grp.cr, function (rsc, request, response) {
                         if (rsc == '0') {
                             body_Obj = {};
-                            body_Obj['dbg'] = 'ACCESS_DENIED';
-                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, 'ACCESS_DENIED');
+                            body_Obj['dbg'] = resultStatusCode['4103'];
+                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
                             return '0';
                         }
 
@@ -1395,7 +1501,7 @@ function lookup_delete(request, response) {
                 });
             }
             else { //if(op == 'direct') {
-                if(results_comm.ty == 2 || results_comm.ty == 4 || results_comm.ty == 3 || results_comm.ty == 9 || results_comm.ty == 24 || results_comm.ty == 23 || results_comm.ty == 29) {
+                if(results_comm.ty == 2 || results_comm.ty == 4 || results_comm.ty == 3 || results_comm.ty == 9 || results_comm.ty == 16 || results_comm.ty == 24 || results_comm.ty == 23 || results_comm.ty == 29) {
                     db_sql.select_resource(responder.typeRsrc[results_comm.ty], results_comm.ri, function (err, results_spec) {
                         if (!err) {
                             if(results_spec.length == 0) {
@@ -1407,12 +1513,15 @@ function lookup_delete(request, response) {
                                 if(results_comm.ty == 2) {
                                     results_spec[0].cr = results_spec[0].aei;
                                 }
+                                else if (results_comm.ty == 16) {
+                                    results_spec[0].cr = results_spec[0].cb;
+                                }
                             }
                             security.check(request, response, results_comm.ty, results_comm.acpi, '8', results_spec[0].cr, function (rsc, request, response) {
                                 if (rsc == '0') {
                                     body_Obj = {};
-                                    body_Obj['dbg'] = 'ACCESS_DENIED';
-                                    responder.response_result(request, response, 403, body_Obj, 4103, request.url, 'ACCESS_DENIED');
+                                    body_Obj['dbg'] = resultStatusCode['4103'];
+                                    responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
                                     return '0';
                                 }
                                 resource.delete(request, response, results_comm);
@@ -1424,8 +1533,8 @@ function lookup_delete(request, response) {
                     security.check(request, response, results_comm.ty, results_comm.acpi, '8', '', function (rsc, request, response) {
                         if (rsc == '0') {
                             body_Obj = {};
-                            body_Obj['dbg'] = 'ACCESS_DENIED';
-                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, 'ACCESS_DENIED');
+                            body_Obj['dbg'] = resultStatusCode['4103'];
+                            responder.response_result(request, response, 403, body_Obj, 4103, request.url, resultStatusCode['4103']);
                             return '0';
                         }
                         resource.delete(request, response, results_comm);
@@ -1436,6 +1545,46 @@ function lookup_delete(request, response) {
     });
 }
 
+
+function updateHitCount(request) {
+    var hit = JSON.parse(fs.readFileSync('hit.json', 'utf-8'));
+
+    var a = moment().utc();
+    var cur_t = a.format('YYYYMMDD');
+    var h = a.hours();
+
+    if(request.headers.hasOwnProperty('binding')) {
+        if(!hit.hasOwnProperty(cur_t)) {
+            hit[cur_t] = [];
+            for(var i = 0; i < 24; i++) {
+                hit[cur_t].push({});
+            }
+        }
+
+        if(!hit[cur_t][h].hasOwnProperty(request.headers['binding'])) {
+            hit[cur_t][h][request.headers['binding']] = 0;
+        }
+
+        hit[cur_t][h][request.headers['binding']]++;
+    }
+    else {
+        if(!hit.hasOwnProperty(cur_t)) {
+            hit[cur_t] = [];
+            for(i = 0; i < 24; i++) {
+                hit[cur_t].push({});
+            }
+        }
+
+        if(!hit[cur_t][h].hasOwnProperty('H')) {
+            hit[cur_t][h]['H'] = 0;
+        }
+
+        hit[cur_t][h]['H']++;
+    }
+
+    //console.log(hit);
+    fs.writeFileSync('hit.json', JSON.stringify(hit, null, 4), 'utf8');
+}
 
 // global.elapsed_hrstart = {};
 // global.elapsed_tid = '0';
@@ -1473,6 +1622,8 @@ app.post(onem2mParser, function (request, response) {
         fullBody += chunk.toString();
     });
     request.on('end', function () {
+        updateHitCount(request);
+
         request.body = fullBody;
         if (request.query.fu == null) {
             request.query.fu = 2;
@@ -1486,11 +1637,13 @@ app.post(onem2mParser, function (request, response) {
 
         check_body_format(request);
 
-        //request.url = request.url.replace(/\/$/, "");
-        //var url_arr = url.parse(request.url).pathname.split('/');
-        var absolute_url = request.url.replace(/\/~\/[^\/]+\/?/, '/').split('#')[0];
-        absolute_url = absolute_url.replace(/\/_/, '/' + usecsebase);
+        var absolute_url = request.url.replace('\/_\/', '\/\/').split('#')[0];
+        absolute_url = absolute_url.replace(usespid, '/~');
+        absolute_url = absolute_url.replace(/\/~\/[^\/]+\/?/, '/');
         var absolute_url_arr = absolute_url.split('/');
+
+        console.log('\n' + request.method + ' : ' + request.url);
+        //console.log('HTTP BODY: ' + request.body);
         db_sql.get_ri_sri(request, response, absolute_url_arr[1].split('?')[0], function (err, results, request, response) {
             if (err) {
                 responder.error_result(request, response, 500, 5000, 'database error (can not get resourceID from database)');
@@ -1539,6 +1692,8 @@ app.get(onem2mParser, function (request, response) {
         fullBody += chunk.toString();
     });
     request.on('end', function () {
+        updateHitCount(request);
+
         request.body = fullBody;
         if (request.query.fu == null) {
             request.query.fu = 2;
@@ -1554,15 +1709,46 @@ app.get(onem2mParser, function (request, response) {
 
         request.url = request.url.replace('%23', '#'); // convert '%23' to '#' of url
         request.hash = url.parse(request.url).hash;
-        var absolute_url = request.url.replace(/\/~\/[^\/]+\/?/, '/').split('#')[0];
-        absolute_url = absolute_url.replace(/\/_/, '/' + usecsebase);
+
+        var absolute_url = request.url.replace('\/_\/', '\/\/').split('#')[0];
+        absolute_url = absolute_url.replace(usespid, '/~');
+        absolute_url = absolute_url.replace(/\/~\/[^\/]+\/?/, '/');
         var absolute_url_arr = absolute_url.split('/');
+
+        console.log('\n' + request.method + ' : ' + request.url);
+        //console.log('HTTP BODY: ' + request.body);
         db_sql.get_ri_sri(request, response, absolute_url_arr[1].split('?')[0], function (err, results, request, response) {
             if (err) {
                 responder.error_result(request, response, 500, 5000, 'database error (can not get resourceID from database)');
             }
             else {
                 absolute_url = (results.length == 0) ? absolute_url : ((results[0].hasOwnProperty('ri')) ? absolute_url.replace('/' + absolute_url_arr[1], results[0].ri) : absolute_url);
+
+                if (url.parse(absolute_url).pathname == '/hit') {
+                    var hit = JSON.parse(fs.readFileSync('hit.json', 'utf-8'));
+                    response.status(200).end(JSON.stringify(hit, null, 4));
+                    return;
+                }
+
+                if (url.parse(absolute_url).pathname == '/total_ae') {
+                    db_sql.select_sum_ae(function (err, result) {
+                        if(!err) {
+                            var total_ae = result[0];
+                            response.status(200).end(JSON.stringify(total_ae, null, 4));
+                        }
+                    });
+                    return;
+                }
+
+                if (url.parse(absolute_url).pathname == '/total_cbs') {
+                    db_sql.select_sum_cbs(function (err, result) {
+                        if(!err) {
+                            var total_cbs = result[0];
+                            response.status(200).end(JSON.stringify(total_cbs, null, 4));
+                        }
+                    });
+                    return;
+                }
 
                 if (url.parse(absolute_url).pathname.split('/')[1] == usecsebase) {
                     request.url = absolute_url;
@@ -1606,6 +1792,8 @@ app.put(onem2mParser, function (request, response) {
         fullBody += chunk.toString();
     });
     request.on('end', function () {
+        updateHitCount(request);
+
         request.body = fullBody;
         if (request.query.fu == null) {
             request.query.fu = 2;
@@ -1619,11 +1807,13 @@ app.put(onem2mParser, function (request, response) {
 
         check_body_format(request);
 
-        //request.url = request.url.replace(/\/$/, "");
-        //var url_arr = url.parse(request.url).pathname.split('/');
-        var absolute_url = request.url.replace(/\/~\/[^\/]+\/?/, '/').split('#')[0];
-        absolute_url = absolute_url.replace(/\/_/, '/' + usecsebase);
+        var absolute_url = request.url.replace('\/_\/', '\/\/').split('#')[0];
+        absolute_url = absolute_url.replace(usespid, '/~');
+        absolute_url = absolute_url.replace(/\/~\/[^\/]+\/?/, '/');
         var absolute_url_arr = absolute_url.split('/');
+
+        console.log('\n' + request.method + ' : ' + request.url);
+        //console.log('HTTP BODY: ' + request.body);
         db_sql.get_ri_sri(request, response, absolute_url_arr[1].split('?')[0], function (err, results, request, response) {
             if (err) {
                 responder.error_result(request, response, 500, 5000, 'database error (can not get resourceID from database)');
@@ -1675,6 +1865,8 @@ app.delete(onem2mParser, function (request, response) {
         fullBody += chunk.toString();
     });
     request.on('end', function () {
+        updateHitCount(request);
+
         request.body = fullBody;
         if (request.query.fu == null) {
             request.query.fu = 2;
@@ -1688,11 +1880,13 @@ app.delete(onem2mParser, function (request, response) {
 
         check_body_format(request);
 
-        //request.url = request.url.replace(/\/$/, "");
-        //var url_arr = url.parse(request.url).pathname.split('/');
-        var absolute_url = request.url.replace(/\/~\/[^\/]+\/?/, '/').split('#')[0];
-        absolute_url = absolute_url.replace(/\/_/, '/' + usecsebase);
+        var absolute_url = request.url.replace('\/_\/', '\/\/').split('#')[0];
+        absolute_url = absolute_url.replace(usespid, '/~');
+        absolute_url = absolute_url.replace(/\/~\/[^\/]+\/?/, '/');
         var absolute_url_arr = absolute_url.split('/');
+
+        console.log('\n' + request.method + ' : ' + request.url);
+        //console.log('HTTP BODY: ' + request.body);
         db_sql.get_ri_sri(request, response, absolute_url_arr[1].split('?')[0], function (err, results, request, response) {
             if (err) {
                 responder.error_result(request, response, 500, 5000, 'database error (can not get resourceID from database)');

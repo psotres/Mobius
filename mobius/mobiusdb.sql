@@ -48,6 +48,7 @@ CREATE TABLE `ae` (
   `or` varchar(45) DEFAULT NULL,
   `rr` varchar(45) DEFAULT NULL,
   `nl` varchar(45) DEFAULT NULL,
+  `csz` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`ri`),
   UNIQUE KEY `path_UNIQUE` (`ri`),
   UNIQUE KEY `aei_UNIQUE` (`aei`),
@@ -114,6 +115,7 @@ CREATE TABLE `cnt` (
   `cbs` varchar(45) DEFAULT NULL,
   `li` varchar(45) DEFAULT NULL,
   `or` varchar(45) DEFAULT NULL,
+  `disr` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`ri`),
   UNIQUE KEY `resourceid_UNIQUE` (`ri`),
   CONSTRAINT `cnt_ri` FOREIGN KEY (`ri`) REFERENCES `lookup` (`ri`) ON DELETE CASCADE ON UPDATE CASCADE
@@ -357,8 +359,9 @@ DROP TABLE IF EXISTS `sri`;
 CREATE TABLE `sri` (
   `ri` varchar(200) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `sri` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`ri`),
+  PRIMARY KEY (`ri`,`sri`),
   UNIQUE KEY `ri_UNIQUE` (`ri`),
+  KEY `idx_sri_sri` (`sri`),
   CONSTRAINT `sri_ri` FOREIGN KEY (`ri`) REFERENCES `lookup` (`ri`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -413,7 +416,7 @@ CREATE TABLE `ts` (
   `pei` varchar(45) DEFAULT NULL,
   `mdd` varchar(45) DEFAULT NULL,
   `mdn` varchar(45) DEFAULT NULL,
-  `mdl` longtext,
+  `mdlt` longtext,
   `mdc` varchar(45) DEFAULT NULL,
   `mdt` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`ri`),
@@ -449,4 +452,4 @@ CREATE TABLE `tsi` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2017-10-12 13:34:30
+-- Dump completed on 2017-12-06 18:10:07
