@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017, KETI
+ * Copyright (c) 2018, KETI
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -10,7 +10,7 @@
 
 /**
  * @file
- * @copyright KETI Korea 2017, OCEAN
+ * @copyright KETI Korea 2018, KETI
  * @author Il Yeup Ahn [iyahn@keti.re.kr]
  */
 
@@ -26,105 +26,11 @@ var responder = require('./responder');
 exports.build_ae = function(request, response, resource_Obj, body_Obj, callback) {
     var rootnm = request.headers.rootnm;
 
-    if(body_Obj[rootnm].ty) {
-        body_Obj = {};
-        body_Obj['dbg'] = 'ty as NP Tag should not be included';
-        responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-        callback('0', resource_Obj);
-        return '0';
-    }
-
-    if(body_Obj[rootnm].ri) {
-        body_Obj = {};
-        body_Obj['dbg'] = 'ri as NP Tag should not be included';
-        responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-        callback('0', resource_Obj);
-        return '0';
-    }
-
-    if(body_Obj[rootnm].pi) {
-        body_Obj = {};
-        body_Obj['dbg'] = 'pi as NP Tag should not be included';
-        responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-        callback('0', resource_Obj);
-        return '0';
-    }
-
-    if(body_Obj[rootnm].ct) {
-        body_Obj = {};
-        body_Obj['dbg'] = 'ct as NP Tag should not be included';
-        responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-        callback('0', resource_Obj);
-        return '0';
-    }
-
-    if(body_Obj[rootnm].lt) {
-        body_Obj = {};
-        body_Obj['dbg'] = 'lt as NP Tag should not be included';
-        responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-        callback('0', resource_Obj);
-        return '0';
-    }
-
-    if(body_Obj[rootnm].st) {
-        body_Obj = {};
-        body_Obj['dbg'] = 'st as NP Tag should not be included';
-        responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-        callback('0', resource_Obj);
-        return '0';
-    }
-
-    if(body_Obj[rootnm].aei) {
-        body_Obj = {};
-        body_Obj['dbg'] = 'aei as NP Tag should not be included';
-        responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-        callback('0', resource_Obj);
-        return '0';
-    }
-
-    if(body_Obj[rootnm].nl) {
-        body_Obj = {};
-        body_Obj['dbg'] = 'nl as NP Tag should not be included';
-        responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-        callback('0', resource_Obj);
-        return '0';
-    }
-
-    // check M
-    if(body_Obj[rootnm].api == null) {
-        body_Obj = {};
-        body_Obj['dbg'] = 'api as M Tag should be included';
-        responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-        callback('0', resource_Obj);
-        return '0';
-    }
-
-    if(body_Obj[rootnm].rr == null) {
-        body_Obj = {};
-        body_Obj['dbg'] = 'rr as M Tag should be included';
-        responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-        callback('0', resource_Obj);
-        return '0';
-    }
-
     // body
-    resource_Obj[rootnm].api = body_Obj[rootnm].api;
-
-    resource_Obj[rootnm].acpi = (body_Obj[rootnm].acpi) ? body_Obj[rootnm].acpi : [];
-    resource_Obj[rootnm].et = (body_Obj[rootnm].et) ? body_Obj[rootnm].et : resource_Obj[rootnm].et;
-    resource_Obj[rootnm].lbl = (body_Obj[rootnm].lbl) ? body_Obj[rootnm].lbl : [];
-    resource_Obj[rootnm].at = (body_Obj[rootnm].at) ? body_Obj[rootnm].at : [];
-    resource_Obj[rootnm].aa = (body_Obj[rootnm].aa) ? body_Obj[rootnm].aa : [];
-
     resource_Obj[rootnm].apn = (body_Obj[rootnm].apn) ? body_Obj[rootnm].apn : '';
     resource_Obj[rootnm].poa = (body_Obj[rootnm].poa) ? body_Obj[rootnm].poa : [];
     resource_Obj[rootnm].or = (body_Obj[rootnm].or) ? body_Obj[rootnm].or : '';
-    resource_Obj[rootnm].rr = (body_Obj[rootnm].rr) ? body_Obj[rootnm].rr : 'true';
     resource_Obj[rootnm].csz = (body_Obj[rootnm].csz) ? body_Obj[rootnm].csz : '';
-
-    //var cur_d = new Date();
-    //var msec = (parseInt(cur_d.getMilliseconds(), 10)<10) ? ('00'+cur_d.getMilliseconds()) : ((parseInt(cur_d.getMilliseconds(), 10)<100) ? ('0'+cur_d.getMilliseconds()) : cur_d.getMilliseconds());
-    //resource_Obj[rootnm].aei = 'S' + '0.2.481.1.' + cur_d.toISOString().replace(/-/, '').replace(/-/, '').replace(/T/, '').replace(/:/, '').replace(/:/, '').replace(/\..+/, '') + msec;
 
     if( (request.headers['x-m2m-origin'] == 'S') ) {
         resource_Obj[rootnm].aei = 'S' + moment().utc().format('YYYYMMDDHHmmssSSS') + randomValueBase64(4);
@@ -137,16 +43,6 @@ exports.build_ae = function(request, response, resource_Obj, body_Obj, callback)
     }
 
     resource_Obj[rootnm].nl = '';
-
-    if (resource_Obj[rootnm].et != '') {
-        if (resource_Obj[rootnm].et < resource_Obj[rootnm].ct) {
-            body_Obj = {};
-            body_Obj['dbg'] = 'expiration is before now';
-            responder.response_result(request, response, 400, body_Obj, 4000, request.url, body_Obj['dbg']);
-            callback('0', resource_Obj);
-            return '0';
-        }
-    }
 
     callback('1', resource_Obj);
 };

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017, KETI
+ * Copyright (c) 2018, KETI
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -10,7 +10,7 @@
 
 /**
  * @file Main code of Mobius Yellow. Role of flow router
- * @copyright KETI Korea 2017, OCEAN
+ * @copyright KETI Korea 2018, KETI
  * @author Il Yeup Ahn [iyahn@keti.re.kr]
  */
 
@@ -213,7 +213,7 @@ var ts_timer_id = {};
 var missing_detect_check = function(pei, mdd, mdt, cni, ri, callback) {
     var rsc = {};
     rsc.status = 2000;
-    if((pei != null && pei != '' && pei != '0') && (mdd != null && (mdd == 'TRUE'||mdd == 'true')) && mdt != '0') {
+    if((pei != null && pei != '' && pei != '0') && (mdd != null && mdd == 'TRUE') && mdt != '0') {
         if(ts_timer[ri] == null) {
             //ts_timer[ri] = new process.EventEmitter();
             var events = require('events');
@@ -306,19 +306,19 @@ ts_app.post('/missingDataDetect', onem2mParser, function(request, response) {
                 if (jsonObj['m2m:dbg']) {
                     var ts_ri = [];
                 }
-                else if (jsonObj['m2m:uril'] == null) {
+                else if (jsonObj['m2m:uril']['_'] == null) {
                     ts_ri = [];
                 }
                 else {
-                    ts_ri = jsonObj['m2m:uril'].toString().split(' ');
+                    ts_ri = jsonObj['m2m:uril']['_'].toString().split(' ');
                 }
 
                 var ts = {};
                 if (ts_ri.length >= 1) {
                     db_sql.select_ts_in(ts_ri, function (err, results_ts) {
                         if (!err) {
-                            for (var i = 0; i < results_ts.length; i++) {
-                                missing_detect_check(results_ts[i].pei, results_ts[i].mdd, results_ts[i].mdt, results_ts[i].cni, results_ts[i].ri, function (rsc) {
+                            if (results_ts.length >= 1) {
+                                missing_detect_check(results_ts[0].pei, results_ts[0].mdd, results_ts[0].mdt, results_ts[0].cni, results_ts[0].ri, function (rsc) {
                                     console.log(rsc);
                                 });
                             }
@@ -327,7 +327,7 @@ ts_app.post('/missingDataDetect', onem2mParser, function(request, response) {
                         response.setHeader('X-M2M-RSC', '2000');
 
                         ts.status = '2000';
-                        ts.ri = jsonObj['m2m:uril'];
+                        ts.ri = jsonObj['m2m:uril']['_'];
                         response.status(200).end(JSON.stringify(ts));
                     });
                 }

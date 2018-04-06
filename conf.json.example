@@ -4,6 +4,7 @@
     "csebaseport": "7579",
     "csetype": "in",
     "dbhost": "localhost",
+    "dbport": 3306,
     "dbuser": "mobius",
     "dbpass": "mobiuspass",
     "dbname": "mobiusdb",
@@ -16,5 +17,9 @@
     "mqttport": 1883,
     "usesecure": "disable",
     "accesscontrolpolicy": "disable",
-    "logDir": "./log"
+    "logDir": "./log",
+    "allowedAppIds": ["C-allowed-id"],
+    "spid": "//keti.re.kr",
+    "superuser": "Superman",
+    "observer": "Sandwich"
 }

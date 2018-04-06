@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017, KETI
+ * Copyright (c) 2018, KETI
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -10,7 +10,7 @@
 
 /**
  * @file
- * @copyright KETI Korea 2016, OCEAN
+ * @copyright KETI Korea 2018, KETI
  * @author Il Yeup Ahn [iyahn@keti.re.kr]
  */
 
@@ -154,7 +154,12 @@ exports.check = function(request, response, ty, acpiList, access_value, cr, call
     // }
 
     if(ty == '1') { // check selfPrevileges
-        acpiList = [url.parse(request.url).pathname.split('?')[0]];
+        if (acpiList.length > 0) {
+
+        }
+        else {
+            acpiList = [url.parse(request.url).pathname.split('?')[0]];
+        }
         security_check_action_pvs(request, response, acpiList, cr, access_value, function (rsc, request, response) {
             callback(rsc, request, response);
             return rsc;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017, KETI
+ * Copyright (c) 2018, KETI
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -10,7 +10,7 @@
 
 /**
  * @file
- * @copyright KETI Korea 2017, OCEAN
+ * @copyright KETI Korea 2018, KETI
  * @author Il Yeup Ahn [iyahn@keti.re.kr]
  */
 
@@ -24,6 +24,7 @@ var xmlbuilder = require('xmlbuilder');
 var fs = require('fs');
 var db_sql = require('./sql_action');
 var cbor = require("cbor");
+var merge = require('merge');
 
 var responder = require('./responder');
 
@@ -34,7 +35,7 @@ function make_xml_noti_message(pc, xm2mri) {
         var noti_message = {};
         noti_message['m2m:rqp'] = {};
         noti_message['m2m:rqp'].op = 5; // notification
-        noti_message['m2m:rqp'].net = pc['m2m:sgn'].net;
+        //noti_message['m2m:rqp'].net = pc['m2m:sgn'].net;
         //noti_message['m2m:rqp'].to = pc['m2m:sgn'].sur;
         noti_message['m2m:rqp'].fr = usecseid;
         noti_message['m2m:rqp'].rqi = xm2mri;
@@ -74,6 +75,7 @@ function make_xml_noti_message(pc, xm2mri) {
     }
     catch (e) {
         console.log('[make_xml_noti_message] xml parsing error');
+        return "";
     }
 }
 
@@ -82,7 +84,7 @@ function make_cbor_noti_message(pc, xm2mri) {
         var noti_message = {};
         noti_message['m2m:rqp'] = {};
         noti_message['m2m:rqp'].op = 5; // notification
-        noti_message['m2m:rqp'].net = pc['m2m:sgn'].net;
+        //noti_message['m2m:rqp'].net = pc['m2m:sgn'].net;
         //noti_message['m2m:rqp'].to = pc['m2m:sgn'].sur;
         noti_message['m2m:rqp'].fr = usecseid;
         noti_message['m2m:rqp'].rqi = xm2mri;
@@ -107,7 +109,7 @@ function make_json_noti_message(nu, pc, xm2mri, short_flag) {
 
         }
         else {
-            noti_message['m2m:rqp'].net = pc['m2m:sgn'].net;
+            //noti_message['m2m:rqp'].net = pc['m2m:sgn'].net;
             noti_message['m2m:rqp'].to = nu;
             noti_message['m2m:rqp'].fr = usecseid;
         }
@@ -136,10 +138,12 @@ function sgn_action(rootnm, check_value, results_ss, noti_Obj, sub_bodytype) {
                 var node = {};
                 if (nct == 2 || nct == 1) {
                     node['m2m:sgn'] = {};
-                    node['m2m:sgn'].net = check_value.toString();
                     node['m2m:sgn'].sur = results_ss.ri;
-                    node['m2m:sgn'].nec = results_ss.nec;
+                    if(results_ss.nec) {
+                        node['m2m:sgn'].nec = results_ss.nec;
+                    }
                     node['m2m:sgn'].nev = {};
+                    node['m2m:sgn'].nev.net = check_value.toString();
                     node['m2m:sgn'].nev.rep = {};
                     node['m2m:sgn'].nev.rep['m2m:'+rootnm] = noti_Obj;
 
@@ -202,8 +206,34 @@ function sgn_action(rootnm, check_value, results_ss, noti_Obj, sub_bodytype) {
                                 "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance"
                             };
 
-                            var bodyString = js2xmlparser.parse(Object.keys(node)[0], node[Object.keys(node)[0]]);
-                            request_noti_http(nu, results_ss.ri, bodyString, sub_bodytype, xm2mri);
+                            for(prop in node['m2m:sgn'].nev.rep) {
+                                if (node['m2m:sgn'].nev.rep.hasOwnProperty(prop)) {
+                                    for (var prop2 in node['m2m:sgn'].nev.rep[prop]) {
+                                        if (node['m2m:sgn'].nev.rep[prop].hasOwnProperty(prop2)) {
+                                            if (prop2 == 'rn') {
+                                                node['m2m:sgn'].nev.rep[prop]['@'] = {rn: node['m2m:sgn'].nev.rep[prop][prop2]};
+                                                delete node['m2m:sgn'].nev.rep[prop][prop2];
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            try {
+                                var bodyString = js2xmlparser.parse(Object.keys(node)[0], node[Object.keys(node)[0]]);
+                            }
+                            catch (e) {
+                                bodyString = "";
+                            }
+
+                            if(bodyString == "") { // parse error
+                                ss_fail_count[req._headers.ri]++;
+                                console.log('can not send notification since error of converting json to xml');
+                            }
+                            else {
+                                request_noti_http(nu, results_ss.ri, bodyString, sub_bodytype, xm2mri);
+                            }
                         }
                         else if (sub_nu.protocol == 'coap:') {
                             node[Object.keys(node)[0]]['@'] = {
@@ -211,16 +241,40 @@ function sgn_action(rootnm, check_value, results_ss, noti_Obj, sub_bodytype) {
                                 "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance"
                             };
 
-                            bodyString = js2xmlparser.parse(Object.keys(node)[0], node[Object.keys(node)[0]]);
-                            request_noti_coap(nu, results_ss.ri, bodyString, sub_bodytype, xm2mri);
+                            try {
+                                bodyString = js2xmlparser.parse(Object.keys(node)[0], node[Object.keys(node)[0]]);
+                            }
+                            catch (e) {
+                                bodyString = "";
+                            }
+
+                            if(bodyString == "") { // parse error
+                                ss_fail_count[req._headers.ri]++;
+                                console.log('can not send notification since error of converting json to xml');
+                            }
+                            else {
+                                request_noti_coap(nu, results_ss.ri, bodyString, sub_bodytype, xm2mri);
+                            }
                         }
                         else if (sub_nu.protocol == 'ws:') {
                             bodyString = make_xml_noti_message(node, xm2mri);
-                            request_noti_ws(nu, results_ss.ri, bodyString, sub_bodytype, xm2mri);
+                            if(bodyString == "") { // parse error
+                                ss_fail_count[req._headers.ri]++;
+                                console.log('can not send notification since error of converting json to xml');
+                            }
+                            else {
+                                request_noti_ws(nu, results_ss.ri, bodyString, sub_bodytype, xm2mri);
+                            }
                         }
                         else { // mqtt:
                             bodyString = make_xml_noti_message(node, xm2mri);
-                            request_noti_mqtt(nu, results_ss.ri, bodyString, sub_bodytype, xm2mri);
+                            if(bodyString == "") { // parse error
+                                ss_fail_count[req._headers.ri]++;
+                                console.log('can not send notification since error of converting json to xml');
+                            }
+                            else {
+                                request_noti_mqtt(nu, results_ss.ri, bodyString, sub_bodytype, xm2mri);
+                            }
                         }
                     }
                     else if (sub_bodytype == 'cbor') {
@@ -280,7 +334,6 @@ function sgn_action(rootnm, check_value, results_ss, noti_Obj, sub_bodytype) {
 exports.check = function(request, notiObj, check_value) {
     var rootnm = request.headers.rootnm;
 
-
     if((request.method == "PUT" && check_value == 1)) {
         var pi = notiObj.ri;
     }
@@ -288,14 +341,53 @@ exports.check = function(request, notiObj, check_value) {
         pi = notiObj.pi;
     }
 
+    var ri = notiObj.ri;
+
+    notiObj.ri = notiObj.sri;
+    delete notiObj.sri;
+    notiObj.pi = notiObj.spi;
+    delete notiObj.spi;
+
     var noti_Str = JSON.stringify(notiObj);
+    var noti_Obj = JSON.parse(noti_Str);
 
     db_sql.select_sub(pi, function (err, results_ss) {
         if (!err) {
             for (var i = 0; i < results_ss.length; i++) {
-                var noti_Obj = JSON.parse(noti_Str);
+                for (var index in results_ss[i]) {
+                    if (results_ss[i].hasOwnProperty(index)) {
+                        if (request.hash) {
+                            if (request.hash.split('#')[1] == index) {
 
-                if(results_ss[i].ri == noti_Obj.ri) {
+                            }
+                            else {
+                                delete results_ss[i][index];
+                            }
+                        }
+                        else {
+                            if (typeof results_ss[i][index] === 'boolean') {
+                                results_ss[i][index] = results_ss[i][index].toString();
+                            }
+                            else if (typeof results_ss[i][index] === 'string') {
+                                if (results_ss[i][index] == '' || results_ss[i][index] == 'undefined' || results_ss[i][index] == '[]') {
+                                    if (results_ss[i][index] == '' && index == 'pi') {
+                                        results_ss[i][index] = 'NULL';
+                                    }
+                                    else {
+                                        delete results_ss[i][index];
+                                    }
+                                }
+                            }
+                            else if (typeof results_ss[i][index] === 'number') {
+                                results_ss[i][index] = results_ss[i][index].toString();
+                            }
+                            else {
+                            }
+                        }
+                    }
+                }
+
+                if(results_ss[i].ri == ri) {
                     continue;
                 }
                 //var cur_d = new Date();
@@ -541,10 +633,59 @@ function request_noti_ws(nu, ri, bodyString, bodytype, xm2mri) {
 }
 
 function delete_sub(ri, xm2mri) {
-    db_sql.delete_ri_lookup(ri, function (err) {
-        if (!err) {
-            console.log('delete sgn of ' + ri + ' for no response');
+    // db_sql.delete_ri_lookup(ri, function (err) {
+    //     if (!err) {
+    //         console.log('delete sgn of ' + ri + ' for no response');
+    //     }
+    // });
+
+    var bodyStr = '';
+    var options = {
+        hostname: 'localhost',
+        port: usecsebaseport,
+        path: ri,
+        method: 'DELETE',
+        headers: {
+            'X-M2M-RI': xm2mri,
+            'Accept': 'application/json',
+            'X-M2M-Origin': usesuperuser
         }
+    };
+
+    function response_del_sub(res) {
+        res.on('data', function (chunk) {
+            bodyStr += chunk;
+        });
+
+        res.on('end', function () {
+            if (res.statusCode == 200 || res.statusCode == 202) {
+                console.log('----> [delete_sub - ' + res.statusCode + ']');
+            }
+        });
+    }
+
+    if(usesecure == 'disable') {
+        var req = http.request(options, function (res) {
+            response_del_sub(res);
+        });
+    }
+    else {
+        options.ca = fs.readFileSync('ca-crt.pem');
+        req = https.request(options, function (res) {
+            response_del_sub(res);
+        });
+    }
+
+    req.on('error', function (e) {
+        console.log('[delete_sub - problem with request: ' + e.message + ']');
     });
+
+    req.on('close', function() {
+        console.log('[delete_sub - close: no response for notification');
+    });
+
+    console.log('<---- [delete_sub - ]');
+    req.write('');
+    req.end();
 }
 

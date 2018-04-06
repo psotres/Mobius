@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017, KETI
+ * Copyright (c) 2018, KETI
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -10,7 +10,7 @@
 
 /**
  * @file
- * @copyright KETI Korea 2017, OCEAN
+ * @copyright KETI Korea 2018, KETI
  * @author Il Yeup Ahn [iyahn@keti.re.kr]
  */
 
@@ -29,7 +29,12 @@ global.usecsebase           = conf.csebase;
 global.usecseid             = conf.cseid;
 global.usecsebaseport       = conf.csebaseport;
 
+global.usespid              = conf.spid;
+global.usesuperuser         = conf.superuser;
+global.useobserver          = conf.observer;
+
 global.usedbhost            = conf.dbhost;
+global.usedbport            = conf.dbport;
 global.usedbuser            = conf.dbuser;
 global.usedbpass            = conf.dbpass;
 global.usedbname            = conf.dbname;
@@ -49,14 +54,41 @@ if(usesecure === 'enable') {
     global.usemqttport      = '8883';
 }
 else {
-    global.usemqttport          = conf.mqttport;
+    global.usemqttport      = conf.mqttport;
 }
 
 global.useaccesscontrolpolicy = conf.accesscontrolpolicy;
 
-global.logDir        		= conf.logDir;
+global.logDir               = conf.logDir;
+
+global.allowed_app_id       = conf.allowedAppIds;
 
 global.wdt = require('./wdt');
+
+var file = 'hit.json';
+fs.open(file, 'w', function(err, fd) {
+    if (err) {
+        throw err;
+}
+    else {
+        var hit = {};
+
+        var moment = require('moment');
+        var a = moment().utc();
+        var cur_t = a.format('YYYYMMDD');
+        var h = a.hours();
+
+        if(!hit.hasOwnProperty(cur_t)) {
+            hit[cur_t] = [];
+            for(var i = 0; i < 24; i++) {
+                hit[cur_t].push({});
+            }
+        }
+
+        //console.log(hit);
+        fs.writeFileSync('hit.json', JSON.stringify(hit, null, 4), 'utf8');
+    }
+});
 
 // CSE core
 require('./app');

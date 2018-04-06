@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017, KETI
+ * Copyright (c) 2018, KETI
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -10,7 +10,7 @@
 
 /**
  * @file
- * @copyright KETI Korea 2017, OCEAN
+ * @copyright KETI Korea 2018, KETI
  * @author Il Yeup Ahn [iyahn@keti.re.kr]
  */
 
@@ -148,6 +148,7 @@ exports.check = function(request, response, grp, body_Obj) {
         get_ri_list_sri(request, response, grp.mid, ri_list, 0, function (ri_list, request, response) {
             var req_count = 0;
             var agr = {};
+            make_internal_ri(ri_list);
             fopt_member(request, response, req_count, ri_list, body_Obj, cse_poa, agr, function (retrieve_Obj) {
                 if (Object.keys(retrieve_Obj).length != 0) {
                     responder.search_result(request, response, 200, retrieve_Obj, 2000, request.url, '');

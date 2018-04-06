@@ -99,6 +99,9 @@ nb-configuration.xml
 nbactions.xml
 nbproject/
 
+# Jetbrains
+.idea/
+
 # Backup
 _bkp/
 docs/
@@ -114,3 +117,11 @@ data/
 
 conf.json
 
+
+################################################
+# Other
+################################################
+log/
+doc/
+hit.json
+package-lock.json

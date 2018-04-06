@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 5.7.17, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 5.7.17, for macos10.12 (x86_64)
 --
--- Host: localhost    Database: mobiusdb
+-- Host: 127.0.0.1    Database: mobiusdb
 -- ------------------------------------------------------
--- Server version	5.7.19-log
+-- Server version	5.7.21
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -212,16 +212,12 @@ CREATE TABLE `lookup` (
   `at` varchar(45) DEFAULT NULL,
   `aa` varchar(45) DEFAULT NULL,
   `st` varchar(45) DEFAULT NULL,
-  `mni` varchar(45) DEFAULT NULL,
-  `cs` varchar(45) DEFAULT NULL,
-  `cnf` varchar(45) DEFAULT NULL,
   `sri` varchar(45) DEFAULT NULL,
   `spi` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`pi`,`ty`,`ct`,`ri`),
   UNIQUE KEY `ri_UNIQUE` (`ri`),
   KEY `idx_lookup_resourcetype` (`ty`),
   KEY `idx_lookup_parentid` (`pi`),
-  KEY `idx_lookup_cs` (`cs`),
   KEY `idx_lookup_ct` (`ct`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -299,6 +295,7 @@ CREATE TABLE `nod` (
   `ri` varchar(200) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `ni` varchar(45) NOT NULL,
   `hcl` varchar(45) DEFAULT NULL,
+  `mgca` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`ri`),
   UNIQUE KEY `ri_UNIQUE` (`ri`),
   CONSTRAINT `nod_ri` FOREIGN KEY (`ri`) REFERENCES `lookup` (`ri`) ON DELETE CASCADE ON UPDATE CASCADE
@@ -398,6 +395,58 @@ CREATE TABLE `sub` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `tm`
+--
+
+DROP TABLE IF EXISTS `tm`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tm` (
+  `ri` varchar(200) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `tltm` varchar(45) DEFAULT NULL,
+  `text` varchar(45) DEFAULT NULL,
+  `tct` varchar(45) DEFAULT NULL,
+  `tept` varchar(45) DEFAULT NULL,
+  `tmd` varchar(45) DEFAULT NULL,
+  `tltp` varchar(45) DEFAULT NULL,
+  `tctl` varchar(45) DEFAULT NULL,
+  `tst` varchar(45) DEFAULT NULL,
+  `tmr` varchar(45) DEFAULT NULL,
+  `tmh` varchar(45) DEFAULT NULL,
+  `rqps` tinytext,
+  `rsps` tinytext,
+  PRIMARY KEY (`ri`),
+  UNIQUE KEY `ri_UNIQUE` (`ri`),
+  CONSTRAINT `tm_ri` FOREIGN KEY (`ri`) REFERENCES `lookup` (`ri`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tr`
+--
+
+DROP TABLE IF EXISTS `tr`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tr` (
+  `ri` varchar(200) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `cr` varchar(45) DEFAULT NULL,
+  `tid` varchar(45) NOT NULL,
+  `tctl` varchar(45) DEFAULT NULL,
+  `tst` varchar(45) DEFAULT NULL,
+  `tltm` varchar(45) DEFAULT NULL,
+  `text` varchar(45) DEFAULT NULL,
+  `tct` varchar(45) DEFAULT NULL,
+  `tltp` varchar(45) DEFAULT NULL,
+  `trqp` tinytext NOT NULL,
+  `trsp` tinytext,
+  PRIMARY KEY (`ri`),
+  UNIQUE KEY `ri_UNIQUE` (`ri`),
+  CONSTRAINT `tr_ri` FOREIGN KEY (`ri`) REFERENCES `lookup` (`ri`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ts`
 --
 
@@ -452,4 +501,4 @@ CREATE TABLE `tsi` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2017-12-06 18:10:07
+-- Dump completed on 2018-03-14 19:06:40
