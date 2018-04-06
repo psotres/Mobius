@@ -24,44 +24,37 @@ global.defaultbodytype      = 'json';
 
 
 // my CSE information
-global.usecsetype           = conf.csetype; // select 'in' or 'mn' or asn'
-global.usecsebase           = conf.csebase;
-global.usecseid             = conf.cseid;
-global.usecsebaseport       = conf.csebaseport;
+global.usecsetype             = conf.csetype; // select 'in' or 'mn' or asn'
+global.usecsebase             = conf.csebase;
+global.usecseid               = conf.cseid;
+global.usecsebaseport         = conf.csebaseport;
 
-global.usespid              = conf.spid;
-global.usesuperuser         = conf.superuser;
-global.useobserver          = conf.observer;
+global.usespid                = conf.spid;
+global.usesuperuser           = conf.superuser;
+global.useobserver            = conf.observer; // does not seem to be used
 
-global.usedbhost            = conf.dbhost;
-global.usedbport            = conf.dbport;
-global.usedbuser            = conf.dbuser;
-global.usedbpass            = conf.dbpass;
-global.usedbname            = conf.dbname;
+global.usedbhost              = conf.dbhost;
+global.usedbport              = conf.dbport;
+global.usedbuser              = conf.dbuser;
+global.usedbpass              = conf.dbpass;
+global.usedbname              = conf.dbname;
 
-global.usepxywsport         = conf.pxywsport;
-global.usepxymqttport       = conf.pxymqttport;
-global.usepxycoapport       = conf.pxycoapport;
+global.usepxywsport           = conf.pxywsport;
+global.usepxymqttport         = conf.pxymqttport;
+global.usepxycoapport         = conf.pxycoapport;
 
-global.usetsagentport       = conf.tsagentport;
+global.usetsagentport         = conf.tsagentport;
 
-global.usemqttbroker        = conf.mqttbroker; // mqttbroker for mobius
-global.usemqttport          = conf.mqttport;
+global.usemqttbroker          = conf.mqttbroker; // mqttbroker for mobius
+global.usemqttport            = conf.mqttport;
 
-global.usesemanticbroker    = conf.semanticbroker;
-global.usesecure            = conf.usesecure;
-if(usesecure === 'enable') {
-    global.usemqttport      = '8883';
-}
-else {
-    global.usemqttport      = conf.mqttport;
-}
-
+global.usesemanticbroker      = conf.semanticbroker;
+global.usesecure              = conf.usesecure;
 global.useaccesscontrolpolicy = conf.accesscontrolpolicy;
 
-global.logDir               = conf.logDir;
+global.logDir                 = conf.logDir;
 
-global.allowed_app_id       = conf.allowedAppIds;
+global.allowed_app_id         = conf.allowedAppIds; // does not seem to be used
 
 global.wdt = require('./wdt');
 
